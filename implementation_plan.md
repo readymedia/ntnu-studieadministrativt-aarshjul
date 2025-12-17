@@ -47,5 +47,15 @@ Denne planen deler opp gjenstående arbeid i logiske faser.
 
 ---
 
-## Fase 8: Integrasjons-forberedelser (Påbegynt)
-- [x] **8.1 Integrasjons-UI:** Legge til menyvalg og "dummy"-grensesnitt for FS, EpN og TP i Admin-panelet for å visualisere fremtidige koblinger.
+## Fase 8: Integrasjons-forberedelser (Fullført)
+- [x] **8.1 Integrasjons-UI:** Legge til menyvalg, konfigurasjonsskjemaer og statusvisning for FS, EpN og TP i Admin-panelet.
+
+---
+
+## Fase 9: Radial Årskalender (Klar for start)
+Dette er en avansert visualisering som ikke erstatter, men supplerer de andre visningene.
+- [ ] **9.1 Matematikk & Infrastruktur:** Implementere logikk for å konvertere datoer til vinkler (Polar coordinates) og oppsett av SVG-canvas.
+- [ ] **9.2 Ring-logikk:** Bygge logikk for å generere konsentriske ringer dynamisk basert på aktive filtre (f.eks. en ring per Studieområde).
+- [ ] **9.3 Rendering av Events:** Implementere tegning av `Arcs` (for perioder) og `Markers` (for frister) med korrekt fargekoding iht. Designsystemet.
+- [ ] **9.4 Interaksjon:** Legge til Tooltips ved hover og gjenbruk av `EventModal` ved klikk. Implementere "Zoom/Fokus" funksjonalitet.
+- [ ] **9.5 Integrasjon:** Legge til nytt menyvalg "Årshjul" i hovedmenyen og koble visningen mot `filteredEvents`.

@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { CalendarEvent, AcademicArea, UserRole, Campus, EventType } from '../types';
 import { BRANCHING_DATA, AREAS, ROLES, CAMPUSES, AVAILABLE_ICONS } from '../constants';
-import { Save, Trash2, X, PlusCircle, Link as LinkIcon, Plus, Check, Calendar, BookOpen, GraduationCap, Globe, FileText, AlertCircle, Clock, Award, Upload, Download, Database, Image as ImageIcon, Server, RefreshCw, Power } from 'lucide-react';
+import { Save, Trash2, X, PlusCircle, Link as LinkIcon, Plus, Check, Calendar, BookOpen, GraduationCap, Globe, FileText, AlertCircle, Clock, Award, Upload, Download, Database, Image as ImageIcon, Server, RefreshCw, Power, Settings, CheckCircle } from 'lucide-react';
 
 interface AdminViewProps {
   onSave: (event: CalendarEvent) => void;
@@ -20,15 +20,23 @@ const IconDisplay = ({ name, size = 20, className = "" }: { name: string, size?:
   return <Icon size={size} className={className} />;
 };
 
+interface IntegrationState {
+  status: 'idle' | 'syncing' | 'connected' | 'error';
+  lastSynced: string | null;
+  configOpen: boolean;
+  apiUrl: string;
+  apiKey: string;
+}
+
 const AdminView: React.FC<AdminViewProps> = ({ onSave, onDelete, onBulkImport, editingEvent, allEvents, onClose }) => {
   const [activeTab, setActiveTab] = useState<'edit' | 'tools' | 'integrations'>('edit');
   const [importJson, setImportJson] = useState('');
   
-  // Mock state for integrations
-  const [syncStatus, setSyncStatus] = useState<Record<string, 'idle' | 'syncing' | 'connected' | 'error'>>({
-    'fs': 'idle',
-    'epn': 'idle',
-    'tp': 'idle'
+  // Enhanced mock state for integrations
+  const [integrations, setIntegrations] = useState<Record<string, IntegrationState>>({
+    'fs': { status: 'idle', lastSynced: null, configOpen: false, apiUrl: 'https://api.fs.no/v1', apiKey: '' },
+    'epn': { status: 'idle', lastSynced: null, configOpen: false, apiUrl: 'https://epn.ntnu.no/api', apiKey: '' },
+    'tp': { status: 'idle', lastSynced: null, configOpen: false, apiUrl: 'https://tp.ntnu.no/ws', apiKey: '' }
   });
 
   const [formData, setFormData] = useState<Partial<CalendarEvent>>({
@@ -142,12 +150,35 @@ const AdminView: React.FC<AdminViewProps> = ({ onSave, onDelete, onBulkImport, e
     }
   };
 
+  const toggleConfig = (system: string) => {
+    setIntegrations(prev => ({
+      ...prev,
+      [system]: { ...prev[system], configOpen: !prev[system].configOpen }
+    }));
+  };
+
+  const updateConfig = (system: string, field: 'apiUrl' | 'apiKey', value: string) => {
+    setIntegrations(prev => ({
+      ...prev,
+      [system]: { ...prev[system], [field]: value }
+    }));
+  };
+
   // Mock function to simulate API sync
   const handleSimulateSync = (system: string) => {
-    setSyncStatus(prev => ({ ...prev, [system]: 'syncing' }));
+    setIntegrations(prev => ({ ...prev, [system]: { ...prev[system], status: 'syncing' } }));
+    
     setTimeout(() => {
-      setSyncStatus(prev => ({ ...prev, [system]: 'connected' }));
-      alert(`Vellykket simulert synkronisering mot ${system.toUpperCase()}. Ingen data ble endret.`);
+      const now = new Date();
+      const timestamp = `${now.toLocaleDateString()} ${now.toLocaleTimeString()}`;
+      setIntegrations(prev => ({ 
+        ...prev, 
+        [system]: { 
+          ...prev[system], 
+          status: 'connected', 
+          lastSynced: timestamp 
+        } 
+      }));
     }, 2000);
   };
 
@@ -542,7 +573,7 @@ const AdminView: React.FC<AdminViewProps> = ({ onSave, onDelete, onBulkImport, e
               </div>
           </div>
         ) : (
-          /* INTEGRATIONS TAB (MOCKUP) */
+          /* INTEGRATIONS TAB (MOCKUP WITH CONFIG) */
           <div className="space-y-8 animate-in fade-in duration-300">
             <div className="bg-indigo-50 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900 rounded-xl p-6">
               <div className="flex items-start gap-4">
@@ -561,57 +592,138 @@ const AdminView: React.FC<AdminViewProps> = ({ onSave, onDelete, onBulkImport, e
 
             <div className="grid gap-4">
               {/* FS Card */}
-              <div className="border border-gray-200 dark:border-slate-700 rounded-xl p-4 flex items-center justify-between bg-white dark:bg-slate-800 shadow-sm">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-gray-100 dark:bg-slate-700 rounded-lg flex items-center justify-center font-black text-gray-500 dark:text-gray-400">FS</div>
-                  <div>
-                    <h4 className="font-bold text-gray-900 dark:text-white">Felles Studentsystem (FS)</h4>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">Henter eksamensdatoer og frister for opptak.</p>
+              <div className="border border-gray-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-800 shadow-sm overflow-hidden transition-all">
+                <div className="p-4 flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-gray-100 dark:bg-slate-700 rounded-lg flex items-center justify-center font-black text-gray-500 dark:text-gray-400">FS</div>
+                    <div>
+                      <h4 className="font-bold text-gray-900 dark:text-white">Felles Studentsystem (FS)</h4>
+                      <div className="flex items-center gap-2">
+                         <p className="text-xs text-gray-500 dark:text-gray-400">Henter eksamensdatoer og frister for opptak.</p>
+                         {integrations['fs'].lastSynced && (
+                           <span className="text-[10px] text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 px-2 py-0.5 rounded">
+                             Sist synkronisert: {integrations['fs'].lastSynced}
+                           </span>
+                         )}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button 
+                      onClick={() => toggleConfig('fs')}
+                      className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
+                      title="Innstillinger"
+                    >
+                      <Settings size={18} />
+                    </button>
+                    
+                    <button 
+                      onClick={() => handleSimulateSync('fs')}
+                      disabled={integrations['fs'].status === 'syncing'}
+                      className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${
+                        integrations['fs'].status === 'connected' 
+                        ? 'bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300' 
+                        : 'bg-indigo-600 text-white hover:bg-indigo-700'
+                      }`}
+                    >
+                      {integrations['fs'].status === 'syncing' ? <RefreshCw size={16} className="animate-spin" /> : <Power size={16} />}
+                      {integrations['fs'].status === 'connected' ? 'Synkroniser' : 'Koble til'}
+                    </button>
                   </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  {syncStatus.fs === 'connected' ? (
-                     <span className="text-xs font-bold text-green-600 bg-green-50 dark:bg-green-900/20 px-2 py-1 rounded flex items-center gap-1">
-                       <Check size={12} /> Tilkoblet
-                     </span>
-                  ) : (
-                     <span className="text-xs font-bold text-gray-500 bg-gray-100 dark:bg-slate-700 px-2 py-1 rounded">Ikke tilkoblet</span>
-                  )}
-                  
-                  <button 
-                    onClick={() => handleSimulateSync('fs')}
-                    disabled={syncStatus.fs === 'syncing'}
-                    className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${
-                      syncStatus.fs === 'connected' 
-                      ? 'bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300' 
-                      : 'bg-indigo-600 text-white hover:bg-indigo-700'
-                    }`}
-                  >
-                    {syncStatus.fs === 'syncing' ? <RefreshCw size={16} className="animate-spin" /> : <Power size={16} />}
-                    {syncStatus.fs === 'connected' ? 'Synkroniser' : 'Koble til'}
-                  </button>
-                </div>
+                
+                {/* FS Config Panel */}
+                {integrations['fs'].configOpen && (
+                  <div className="bg-gray-50 dark:bg-slate-900/50 p-4 border-t border-gray-100 dark:border-slate-800 animate-in slide-in-from-top-2">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                      <div className="space-y-1">
+                        <label className="font-semibold text-gray-600 dark:text-gray-400">API Endepunkt</label>
+                        <input 
+                          className="w-full p-2 rounded border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 dark:text-white"
+                          value={integrations['fs'].apiUrl}
+                          onChange={(e) => updateConfig('fs', 'apiUrl', e.target.value)}
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="font-semibold text-gray-600 dark:text-gray-400">API Nøkkel</label>
+                        <input 
+                          type="password"
+                          className="w-full p-2 rounded border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 dark:text-white"
+                          value={integrations['fs'].apiKey}
+                          placeholder="******************"
+                          onChange={(e) => updateConfig('fs', 'apiKey', e.target.value)}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* EpN Card */}
-              <div className="border border-gray-200 dark:border-slate-700 rounded-xl p-4 flex items-center justify-between bg-white dark:bg-slate-800 shadow-sm">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-gray-100 dark:bg-slate-700 rounded-lg flex items-center justify-center font-black text-gray-500 dark:text-gray-400">EpN</div>
-                  <div>
-                    <h4 className="font-bold text-gray-900 dark:text-white">Emneplanlegging på Nett</h4>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">Henter frister for emne- og programrevisjon.</p>
+              <div className="border border-gray-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-800 shadow-sm overflow-hidden transition-all">
+                <div className="p-4 flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-gray-100 dark:bg-slate-700 rounded-lg flex items-center justify-center font-black text-gray-500 dark:text-gray-400">EpN</div>
+                    <div>
+                      <h4 className="font-bold text-gray-900 dark:text-white">Emneplanlegging på Nett</h4>
+                       <div className="flex items-center gap-2">
+                         <p className="text-xs text-gray-500 dark:text-gray-400">Henter frister for emne- og programrevisjon.</p>
+                         {integrations['epn'].lastSynced && (
+                           <span className="text-[10px] text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 px-2 py-0.5 rounded">
+                             Sist synkronisert: {integrations['epn'].lastSynced}
+                           </span>
+                         )}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                     <button 
+                      onClick={() => toggleConfig('epn')}
+                      className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
+                      title="Innstillinger"
+                    >
+                      <Settings size={18} />
+                    </button>
+                    <button 
+                      onClick={() => handleSimulateSync('epn')}
+                      disabled={integrations['epn'].status === 'syncing'}
+                      className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${
+                        integrations['epn'].status === 'connected' 
+                        ? 'bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300' 
+                        : 'bg-indigo-600 text-white hover:bg-indigo-700'
+                      }`}
+                    >
+                      {integrations['epn'].status === 'syncing' ? <RefreshCw size={16} className="animate-spin" /> : <Power size={16} />}
+                      {integrations['epn'].status === 'connected' ? 'Synkroniser' : 'Koble til'}
+                    </button>
                   </div>
                 </div>
-                <div className="flex items-center gap-3">
-                   <button 
-                    onClick={() => handleSimulateSync('epn')}
-                    disabled={syncStatus.epn === 'syncing'}
-                    className="px-4 py-2 rounded-lg text-sm font-bold bg-indigo-600 text-white hover:bg-indigo-700 transition-all flex items-center gap-2"
-                  >
-                    {syncStatus.epn === 'syncing' ? <RefreshCw size={16} className="animate-spin" /> : <Power size={16} />}
-                    Koble til
-                  </button>
-                </div>
+
+                {/* EpN Config Panel */}
+                {integrations['epn'].configOpen && (
+                  <div className="bg-gray-50 dark:bg-slate-900/50 p-4 border-t border-gray-100 dark:border-slate-800 animate-in slide-in-from-top-2">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                      <div className="space-y-1">
+                        <label className="font-semibold text-gray-600 dark:text-gray-400">API Endepunkt</label>
+                        <input 
+                          className="w-full p-2 rounded border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 dark:text-white"
+                          value={integrations['epn'].apiUrl}
+                          onChange={(e) => updateConfig('epn', 'apiUrl', e.target.value)}
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="font-semibold text-gray-600 dark:text-gray-400">API Nøkkel</label>
+                        <input 
+                          type="password"
+                          className="w-full p-2 rounded border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 dark:text-white"
+                          value={integrations['epn'].apiKey}
+                          placeholder="******************"
+                          onChange={(e) => updateConfig('epn', 'apiKey', e.target.value)}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* TP Card */}

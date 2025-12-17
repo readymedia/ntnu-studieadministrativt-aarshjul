@@ -7,8 +7,8 @@ Dette dokumentet gir en oversikt over status på funksjonalitet basert på den o
 
 ## 1. Status Oversikt
 
-**Nåværende Fase:** Fase 8 (Integrasjons-forberedelser).
-Kjernefunksjonaliteten er ferdig. Vi legger nå inn visuelle plassholdere for fremtidige systemintegrasjoner (FS, TP, EpN) for å demonstrere arkitekturen.
+**Nåværende Fase:** Fase 9 (Radial Årskalender).
+Kjernefunksjonaliteten (Versjon 1.0) er ferdig. Vi starter nå arbeidet med en avansert visualisering ("Årshjulet") for å vise hele året i ett sirkulært bilde.
 
 ## 2. Implementert Funksjonalitet (Fullført)
 
@@ -29,14 +29,26 @@ Kjernefunksjonaliteten er ferdig. Vi legger nå inn visuelle plassholdere for fr
 - **CRUD:** Full støtte for å opprette, redigere og slette.
 - **Metadata:** Utvidet støtte for Campus, Roller, Ikoner, Lenker og Bilder.
 - **Dataverktøy:** Bulk import og eksport av data (JSON).
-- **Integrasjoner:** UI-mockups for kobling mot FS, EpN og TP.
+- **Integrasjoner:** Klargjort UI for konfigurasjon av FS, EpN og TP (API-nøkler, endepunkter, synkroniseringsstatus).
 
 ### Data
 - **Real World Data:** Importert datasett for 2025.
 
 ---
 
-## 3. Neste Steg
+## 3. Planlagt Funksjonalitet (Under utvikling)
 
-- **Integrasjoner:** Realisere API-koblingene (krever backend-proxy).
-- **Autentisering:** Bytte ut passord-prompt med Feide-innlogging (når backend er på plass).
+### Fase 9: Radial Årskalender (Årshjul)
+En ny visningstype som visualiserer året som en sirkel (360°).
+- **Konsept:** Tid som sirkel, datastrømmer som konsentriske ringer.
+- **Elementer:** Perioder vises som buer (arcs), frister som punkter/markører.
+- **Teknisk:** SVG-basert rendering for høy ytelse og skalerbarhet.
+- **Interaksjon:** "Focus + Context" ved hover/klikk.
+
+---
+
+## 4. Veien Videre (Post-MVP)
+
+- **Backend:** Utvikle backend-proxy for sikker kommunikasjon med NTNUs APIer.
+- **Autentisering:** Erstatte klient-side passord med Feide-integrasjon.
+- **Drift:** Sette opp CI/CD pipelines mot Vercel/Azure.
