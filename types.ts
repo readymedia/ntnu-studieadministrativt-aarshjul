@@ -17,7 +17,19 @@ export type UserRole =
   | 'Studieveileder' 
   | 'Emneansvarlig' 
   | 'Fellesadministrasjon'
-  | 'Student';
+  | 'Student'
+  | 'Admin';
+
+export interface UserProfile {
+  id: string;
+  name: string;
+  role: UserRole;
+  avatarUrl: string;
+  permissions: {
+    canEdit: boolean;
+    canAdminister: boolean;
+  };
+}
 
 export interface CalendarEvent {
   id: string;
@@ -36,6 +48,11 @@ export interface CalendarEvent {
   updatedBy?: string;
   icon?: string; // Icon name
   imageUrl?: string; // URL to external image
+  
+  // Excel import metadata
+  sourceStatus?: string; // Fra "Status" kolonne
+  sourceRing?: string; // Fra "Ring" kolonne
+  sourceOrigin?: string; // Fra "Opprinnelse" kolonne
 }
 
 export interface FilterState {

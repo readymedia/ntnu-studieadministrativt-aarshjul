@@ -1,23 +1,28 @@
+
 import { 
   format, 
   isValid, 
-  endOfMonth, 
   eachDayOfInterval, 
   isSameDay, 
-  endOfWeek, 
   isWithinInterval, 
-  isBefore,
+  isBefore, 
   differenceInMilliseconds,
-  endOfYear
+  endOfYear,
+  addMonths,
+  addWeeks,
+  differenceInDays
 } from 'date-fns';
-import startOfMonth from 'date-fns/startOfMonth';
-import startOfWeek from 'date-fns/startOfWeek';
-import startOfDay from 'date-fns/startOfDay';
-import startOfYear from 'date-fns/startOfYear';
 import nb from 'date-fns/locale/nb';
 import { CalendarEvent } from './types';
 
 export { nb };
+
+// Helper function to replace missing startOfDay import
+const startOfDay = (date: Date | number) => {
+  const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
+  return d;
+};
 
 // Custom parser to handle YYYY-MM-DD strings as local dates consistently
 export const parseDate = (dateStr: string) => {
@@ -57,13 +62,10 @@ export const getDaysInInterval = (start: Date, end: Date) => {
   try {
     if (!isValid(start) || !isValid(end)) return [];
     
-    const s = startOfDay(start);
-    const e = startOfDay(end);
-
     // eachDayOfInterval throws if end is before start. 
     // We swap them if necessary to prevent the crash.
-    const actualStart = isBefore(s, e) ? s : e;
-    const actualEnd = isBefore(s, e) ? e : s;
+    const actualStart = isBefore(start, end) ? start : end;
+    const actualEnd = isBefore(start, end) ? end : start;
 
     const days = eachDayOfInterval({ start: actualStart, end: actualEnd });
     // Limit range to prevent browser hanging on weird intervals
@@ -131,7 +133,7 @@ export const generateICS = (events: CalendarEvent[]): string => {
       `UID:${event.id}@ntnu.no`,
       `DTSTAMP:${now}`,
       `DTSTART;VALUE=DATE:${formatDateICS(event.startDate)}`,
-      `DTEND;VALUE=DATE:${formatDateICS(event.endDate)}`, // Note: ICS end date is exclusive for all-day events, usually handled by client, but for simplicity we keep it simple here. Ideally +1 day.
+      `DTEND;VALUE=DATE:${formatDateICS(event.endDate)}`, 
       `SUMMARY:${event.title}`,
       `DESCRIPTION:${description}`,
       `CATEGORIES:${event.area}`,
@@ -203,7 +205,10 @@ export const describeDonutSector = (x: number, y: number, innerRadius: number, o
 };
 
 export const dateToAngle = (date: Date, year: number) => {
-  const start = startOfYear(new Date(year, 0, 1));
+  // startOfYear replacement
+  const start = new Date(year, 0, 1);
+  start.setHours(0,0,0,0);
+  
   const end = endOfYear(new Date(year, 0, 1));
   const totalMs = differenceInMilliseconds(end, start);
   const elapsedMs = differenceInMilliseconds(date, start);

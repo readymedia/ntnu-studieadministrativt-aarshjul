@@ -1,5 +1,5 @@
 {
   "name": "NTNU Studieadministrativt Årshjul",
-  "description": "En dynamisk oversikt over studieadministrative frister, hendelser og perioder for NTNU, med filtrering på rolle, område og campus.",
+  "description": "Interaktiv prototype for NTNU. Visualiserer studieadministrative frister i Kalender, Liste og Årshjul. Inkluderer Excel-import, filtrering og rollebasert visning.",
   "requestFramePermissions": []
 }

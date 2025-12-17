@@ -10,11 +10,8 @@ import {
   addWeeks, 
   isSameDay, 
   differenceInDays, 
-  isValid 
+  isValid
 } from 'date-fns';
-import startOfMonth from 'date-fns/startOfMonth';
-import startOfWeek from 'date-fns/startOfWeek';
-import startOfDay from 'date-fns/startOfDay';
 import { nb, getDaysInInterval, isEventInInterval, parseDate } from '../utils'; 
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, AlertCircle } from 'lucide-react';
 
@@ -24,6 +21,29 @@ interface CalendarViewProps {
 }
 
 type ZoomLevel = 'month' | 'week';
+
+// Local date helpers to replace missing date-fns imports
+const startOfDay = (date: Date) => {
+  const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
+  return d;
+};
+
+const startOfMonth = (date: Date) => {
+  const d = new Date(date);
+  d.setDate(1);
+  d.setHours(0, 0, 0, 0);
+  return d;
+};
+
+const startOfWeek = (date: Date, options: { weekStartsOn: number }) => {
+  const d = new Date(date);
+  const day = d.getDay();
+  const diff = (day < options.weekStartsOn ? 7 : 0) + day - options.weekStartsOn;
+  d.setDate(d.getDate() - diff);
+  d.setHours(0, 0, 0, 0);
+  return d;
+};
 
 const CalendarView: React.FC<CalendarViewProps> = ({ events, onSelectEvent }) => {
   const [currentDate, setCurrentDate] = useState(() => {

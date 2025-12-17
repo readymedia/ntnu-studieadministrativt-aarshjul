@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { CalendarEvent, FilterState, AcademicArea, UserRole, Campus } from './types';
+import { CalendarEvent, FilterState, AcademicArea, UserRole, Campus, UserProfile } from './types';
 import { INITIAL_EVENTS } from './initialData';
 import { generateICS } from './utils';
 import Sidebar from './components/Sidebar';
@@ -10,16 +10,11 @@ import YearWheelView from './components/YearWheelView';
 import AdminView from './components/AdminView';
 import EventModal from './components/EventModal';
 import LoginModal from './components/LoginModal';
-import { Search, Calendar as CalendarIcon, List, Plus, Bell, Lock, LogOut, Download, Sun, Moon, Menu, CircleDashed } from 'lucide-react';
+import ProfileView, { DUMMY_USERS } from './components/ProfileView';
+import AboutModal from './components/AboutModal';
+import { Search, Calendar as CalendarIcon, List, Plus, Bell, Lock, LogOut, Download, Sun, Moon, Menu, CircleDashed, User, Info } from 'lucide-react';
 
-/**
- * ARCHITECTURAL GUIDELINE:
- * All academic data is managed centrally in this component's `events` state.
- * Any new view or component MUST use the `filteredEvents` or `events` passed down from here.
- * This ensures 100% data consistency across Agenda, Calendar, Admin and any future modules.
- */
-
-type ViewMode = 'Agenda' | 'Calendar' | 'YearWheel' | 'Admin';
+type ViewMode = 'Agenda' | 'Calendar' | 'YearWheel' | 'Admin' | 'Profile';
 
 const App: React.FC = () => {
   // Central Data Store with LocalStorage persistence
@@ -42,9 +37,15 @@ const App: React.FC = () => {
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const [editTarget, setEditTarget] = useState<CalendarEvent | null>(null);
   
-  // Auth state
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  // Auth state - Now using full User Profile
+  const [currentUser, setCurrentUser] = useState<UserProfile | null>(() => {
+    const savedUser = localStorage.getItem('ntnu_user');
+    return savedUser ? JSON.parse(savedUser) : null;
+  });
   const [showLoginModal, setShowLoginModal] = useState<boolean>(false);
+  
+  // New State for About Modal
+  const [showAboutModal, setShowAboutModal] = useState<boolean>(false);
 
   // Mobile sidebar state
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
@@ -69,6 +70,14 @@ const App: React.FC = () => {
   useEffect(() => {
     localStorage.setItem('ntnu_aarshjul_events', JSON.stringify(events));
   }, [events]);
+
+  useEffect(() => {
+    if (currentUser) {
+      localStorage.setItem('ntnu_user', JSON.stringify(currentUser));
+    } else {
+      localStorage.removeItem('ntnu_user');
+    }
+  }, [currentUser]);
 
   // Central filtering logic - used by ALL views
   const filteredEvents = useMemo(() => {
@@ -125,9 +134,15 @@ const App: React.FC = () => {
   };
 
   const handleBulkImport = (newEvents: CalendarEvent[]) => {
-    if (confirm(`Dette vil overskrive eksisterende data med ${newEvents.length} elementer. Er du sikker?`)) {
-      setEvents(newEvents);
-      alert('Data ble importert.');
+    // Replaces ALL events
+    setEvents(newEvents);
+    setIsEditing(false);
+  };
+
+  const handleHardReset = () => {
+    if (confirm('ADVARSEL: Er du helt sikker? Dette sletter alle data i systemet.')) {
+      setEvents([]); // Or reset to INITIAL_EVENTS if preferred, but user said "sletter alt"
+      localStorage.removeItem('ntnu_aarshjul_events');
       setIsEditing(false);
     }
   };
@@ -138,10 +153,17 @@ const App: React.FC = () => {
     setIsEditing(true);
   };
 
+  const handleLogin = () => {
+    // Default to Admin on simple login
+    setCurrentUser(DUMMY_USERS[0]); 
+    setShowLoginModal(false);
+    setViewMode('Profile'); // Redirect to profile to see status
+  };
+
   const handleLogout = () => {
-    setIsAuthenticated(false);
+    setCurrentUser(null);
+    setViewMode('Agenda');
     setIsEditing(false);
-    setEditTarget(null);
   };
 
   const handleDownloadICS = () => {
@@ -187,13 +209,13 @@ const App: React.FC = () => {
                   <div className="relative h-8 md:h-10 w-auto flex items-center">
                     {/* Light Mode Logo */}
                     <img 
-                      src="https://upload.wikimedia.org/wikipedia/commons/3/3d/NTNU_logo.svg" 
+                      src="https://www.readymedia.no/NTNU/logo/NTNU_farge_barelogopng.png" 
                       alt="NTNU" 
                       className="h-full w-auto block dark:hidden" 
                     />
-                    {/* Dark Mode Logo: Inverted using CSS filters for perfect white version */}
+                    {/* Dark Mode Logo */}
                     <img 
-                      src="https://upload.wikimedia.org/wikipedia/commons/3/3d/NTNU_logo.svg" 
+                      src="https://www.readymedia.no/NTNU/logo/NTNU_farge_barelogopng.png" 
                       alt="NTNU" 
                       className="h-full w-auto hidden dark:block brightness-0 invert" 
                     />
@@ -214,6 +236,16 @@ const App: React.FC = () => {
 
               {/* Action Buttons (Right side) */}
               <div className="flex items-center gap-2">
+                 
+                 {/* About Button */}
+                 <button 
+                  onClick={() => setShowAboutModal(true)}
+                  className="p-2 text-gray-500 dark:text-gray-400 hover:text-[#00509e] dark:hover:text-blue-400 transition-colors rounded-full hover:bg-gray-100 dark:hover:bg-slate-800"
+                  title="Om prosjektet"
+                >
+                  <Info size={20} />
+                </button>
+
                  <button 
                   onClick={() => setIsDarkMode(!isDarkMode)}
                   className="p-2 text-gray-500 dark:text-gray-400 hover:text-[#00509e] dark:hover:text-blue-400 transition-colors rounded-full hover:bg-gray-100 dark:hover:bg-slate-800"
@@ -222,13 +254,14 @@ const App: React.FC = () => {
                   {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
                 </button>
                 
-                {isAuthenticated ? (
+                {currentUser ? (
                   <button 
-                    onClick={handleLogout}
-                    className="p-2 text-gray-500 hover:text-red-600 transition-colors rounded-full hover:bg-red-50 dark:hover:bg-red-900/10"
-                    title="Logg ut"
+                    onClick={() => setViewMode('Profile')}
+                    className="flex items-center gap-2 p-1 pr-3 rounded-full hover:bg-gray-100 dark:hover:bg-slate-800 border border-transparent hover:border-gray-200 dark:hover:border-slate-700 transition-all"
+                    title="Min profil"
                   >
-                    <LogOut size={20} />
+                    <img src={currentUser.avatarUrl} alt="Avatar" className="w-8 h-8 rounded-full" />
+                    <span className="text-xs font-bold hidden md:inline">{currentUser.name.split(' ')[0]}</span>
                   </button>
                 ) : (
                   <button 
@@ -290,7 +323,7 @@ const App: React.FC = () => {
                   <Download size={20} />
                 </button>
 
-                {isAuthenticated && (
+                {currentUser?.permissions.canEdit && (
                   <button 
                     onClick={() => {
                       setEditTarget(null);
@@ -307,20 +340,28 @@ const App: React.FC = () => {
           </div>
         </header>
 
-        {/* Dynamic View Section - Always consumes from the Central Filtered State */}
+        {/* Dynamic View Section */}
         <div className="flex-1 overflow-y-auto p-4 md:p-6">
           <div className="max-w-6xl mx-auto h-full">
-            {isEditing && isAuthenticated ? (
+            {isEditing && currentUser?.permissions.canEdit ? (
               <AdminView 
                 onSave={handleSaveEvent} 
                 onDelete={handleDeleteEvent}
                 onBulkImport={handleBulkImport}
+                onHardReset={handleHardReset}
                 editingEvent={editTarget}
-                allEvents={events} // Pass all events for export
+                allEvents={events} 
                 onClose={() => {
                   setIsEditing(false);
                   setEditTarget(null);
                 }}
+              />
+            ) : viewMode === 'Profile' ? (
+              <ProfileView 
+                currentUser={currentUser} 
+                onSwitchUser={(user) => setCurrentUser(user)}
+                onLogout={handleLogout}
+                onClose={() => setViewMode('Agenda')}
               />
             ) : viewMode === 'Agenda' ? (
               <AgendaView 
@@ -344,11 +385,15 @@ const App: React.FC = () => {
         {/* Login Modal */}
         {showLoginModal && (
           <LoginModal 
-            onLogin={() => {
-              setIsAuthenticated(true);
-              setShowLoginModal(false);
-            }}
+            onLogin={handleLogin}
             onClose={() => setShowLoginModal(false)}
+          />
+        )}
+        
+        {/* About Modal */}
+        {showAboutModal && (
+          <AboutModal 
+            onClose={() => setShowAboutModal(false)}
           />
         )}
       </main>
@@ -359,7 +404,7 @@ const App: React.FC = () => {
           event={selectedEvent} 
           onClose={() => setSelectedEvent(null)}
           onEdit={handleEditRequest}
-          isAuthenticated={isAuthenticated}
+          isAuthenticated={currentUser?.permissions.canEdit}
         />
       )}
     </div>
