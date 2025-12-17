@@ -6,9 +6,11 @@ import { generateICS } from './utils';
 import Sidebar from './components/Sidebar';
 import AgendaView from './components/AgendaView';
 import CalendarView from './components/CalendarView';
+import YearWheelView from './components/YearWheelView';
 import AdminView from './components/AdminView';
 import EventModal from './components/EventModal';
-import { Search, Calendar as CalendarIcon, List, Plus, Bell, Lock, LogOut, Download, Sun, Moon, Menu } from 'lucide-react';
+import LoginModal from './components/LoginModal';
+import { Search, Calendar as CalendarIcon, List, Plus, Bell, Lock, LogOut, Download, Sun, Moon, Menu, CircleDashed } from 'lucide-react';
 
 /**
  * ARCHITECTURAL GUIDELINE:
@@ -17,7 +19,7 @@ import { Search, Calendar as CalendarIcon, List, Plus, Bell, Lock, LogOut, Downl
  * This ensures 100% data consistency across Agenda, Calendar, Admin and any future modules.
  */
 
-type ViewMode = 'Agenda' | 'Calendar' | 'Admin';
+type ViewMode = 'Agenda' | 'Calendar' | 'YearWheel' | 'Admin';
 
 const App: React.FC = () => {
   // Central Data Store with LocalStorage persistence
@@ -42,6 +44,7 @@ const App: React.FC = () => {
   
   // Auth state
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [showLoginModal, setShowLoginModal] = useState<boolean>(false);
 
   // Mobile sidebar state
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
@@ -135,15 +138,6 @@ const App: React.FC = () => {
     setIsEditing(true);
   };
 
-  const handleLogin = () => {
-    const pwd = prompt("Skriv inn passord for å redigere (hint: ntnu):");
-    if (pwd === "ntnu") {
-      setIsAuthenticated(true);
-    } else if (pwd !== null) {
-      alert("Feil passord.");
-    }
-  };
-
   const handleLogout = () => {
     setIsAuthenticated(false);
     setIsEditing(false);
@@ -173,7 +167,7 @@ const App: React.FC = () => {
       />
 
       {/* Main Content Area */}
-      <main className="flex-1 flex flex-col overflow-hidden">
+      <main className="flex-1 flex flex-col overflow-hidden relative">
         {/* Header */}
         <header className="bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-800 p-4 md:p-6 sticky top-0 z-30 shadow-sm transition-colors duration-200">
           <div className="flex flex-col gap-4">
@@ -187,11 +181,34 @@ const App: React.FC = () => {
                 >
                   <Menu size={24} />
                 </button>
-                <div>
-                  <h1 className="text-xl md:text-2xl font-black text-[#00509e] dark:text-blue-400 flex items-center gap-2 tracking-tight">
-                    NTNU Årshjul
-                  </h1>
-                  <p className="text-[10px] md:text-xs text-gray-500 dark:text-gray-400 font-bold uppercase tracking-widest hidden sm:block mt-1">Studieadministrativ oversikt</p>
+                
+                {/* Logo and Title Group */}
+                <div className="flex items-center gap-3 md:gap-5">
+                  <div className="relative h-8 md:h-10 w-auto flex items-center">
+                    {/* Light Mode Logo */}
+                    <img 
+                      src="https://upload.wikimedia.org/wikipedia/commons/3/3d/NTNU_logo.svg" 
+                      alt="NTNU" 
+                      className="h-full w-auto block dark:hidden" 
+                    />
+                    {/* Dark Mode Logo: Inverted using CSS filters for perfect white version */}
+                    <img 
+                      src="https://upload.wikimedia.org/wikipedia/commons/3/3d/NTNU_logo.svg" 
+                      alt="NTNU" 
+                      className="h-full w-auto hidden dark:block brightness-0 invert" 
+                    />
+                  </div>
+
+                  <div className="h-8 w-[1px] bg-gray-200 dark:bg-slate-700 hidden sm:block"></div>
+
+                  <div>
+                    <h1 className="text-lg md:text-xl font-black text-[#00509e] dark:text-blue-400 tracking-tight leading-none">
+                      Årshjul
+                    </h1>
+                    <p className="text-[10px] md:text-xs text-gray-500 dark:text-gray-400 font-bold uppercase tracking-widest hidden sm:block mt-0.5">
+                      Studieadministrativ oversikt
+                    </p>
+                  </div>
                 </div>
               </div>
 
@@ -208,15 +225,15 @@ const App: React.FC = () => {
                 {isAuthenticated ? (
                   <button 
                     onClick={handleLogout}
-                    className="p-2 text-gray-500 hover:text-red-600 transition-colors"
+                    className="p-2 text-gray-500 hover:text-red-600 transition-colors rounded-full hover:bg-red-50 dark:hover:bg-red-900/10"
                     title="Logg ut"
                   >
                     <LogOut size={20} />
                   </button>
                 ) : (
                   <button 
-                    onClick={handleLogin}
-                    className="text-gray-500 hover:text-[#00509e] dark:hover:text-blue-400 p-2 rounded-full transition-colors flex items-center gap-2"
+                    onClick={() => setShowLoginModal(true)}
+                    className="text-gray-500 hover:text-[#00509e] dark:hover:text-blue-400 p-2 rounded-full transition-colors flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-slate-800"
                   >
                     <Lock size={18} />
                     <span className="text-xs font-bold uppercase hidden md:inline">Logg inn</span>
@@ -254,6 +271,13 @@ const App: React.FC = () => {
                     <CalendarIcon size={18} />
                     <span className="text-xs">Kalender</span>
                   </button>
+                  <button 
+                    onClick={() => setViewMode('YearWheel')}
+                    className={`p-2 rounded-full transition-all flex items-center gap-2 px-4 ${viewMode === 'YearWheel' ? 'bg-white dark:bg-slate-700 shadow text-[#00509e] dark:text-blue-300 font-bold' : 'text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200'}`}
+                  >
+                    <CircleDashed size={18} />
+                    <span className="text-xs">Årshjul</span>
+                  </button>
                 </div>
 
                 <div className="h-8 w-[1px] bg-gray-200 dark:bg-slate-700 mx-2 hidden md:block"></div>
@@ -285,7 +309,7 @@ const App: React.FC = () => {
 
         {/* Dynamic View Section - Always consumes from the Central Filtered State */}
         <div className="flex-1 overflow-y-auto p-4 md:p-6">
-          <div className="max-w-6xl mx-auto">
+          <div className="max-w-6xl mx-auto h-full">
             {isEditing && isAuthenticated ? (
               <AdminView 
                 onSave={handleSaveEvent} 
@@ -303,6 +327,11 @@ const App: React.FC = () => {
                 events={filteredEvents} 
                 onSelectEvent={(e) => setSelectedEvent(e)} 
               />
+            ) : viewMode === 'YearWheel' ? (
+              <YearWheelView
+                events={filteredEvents}
+                onSelectEvent={(e) => setSelectedEvent(e)}
+              />
             ) : (
               <CalendarView 
                 events={filteredEvents} 
@@ -311,6 +340,17 @@ const App: React.FC = () => {
             )}
           </div>
         </div>
+
+        {/* Login Modal */}
+        {showLoginModal && (
+          <LoginModal 
+            onLogin={() => {
+              setIsAuthenticated(true);
+              setShowLoginModal(false);
+            }}
+            onClose={() => setShowLoginModal(false)}
+          />
+        )}
       </main>
 
       {/* Central Detail Modal */}

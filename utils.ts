@@ -1,4 +1,3 @@
-
 import { 
   format, 
   isValid, 
@@ -7,11 +6,14 @@ import {
   isSameDay, 
   endOfWeek, 
   isWithinInterval, 
-  isBefore 
+  isBefore,
+  differenceInMilliseconds,
+  endOfYear
 } from 'date-fns';
 import startOfMonth from 'date-fns/startOfMonth';
 import startOfWeek from 'date-fns/startOfWeek';
 import startOfDay from 'date-fns/startOfDay';
+import startOfYear from 'date-fns/startOfYear';
 import nb from 'date-fns/locale/nb';
 import { CalendarEvent } from './types';
 
@@ -139,4 +141,73 @@ export const generateICS = (events: CalendarEvent[]): string => {
 
   icsContent += '\r\nEND:VCALENDAR';
   return icsContent;
+};
+
+// --- RADIAL / POLAR MATH HELPER FUNCTIONS ---
+
+export const polarToCartesian = (centerX: number, centerY: number, radius: number, angleInDegrees: number) => {
+  // SVG coordinate system: 0 degrees is usually 3 o'clock. 
+  // We want 0 degrees to be 12 o'clock (top), so we subtract 90 degrees.
+  const angleInRadians = (angleInDegrees - 90) * Math.PI / 180.0;
+
+  return {
+    x: centerX + (radius * Math.cos(angleInRadians)),
+    y: centerY + (radius * Math.sin(angleInRadians))
+  };
+};
+
+export const describeArc = (x: number, y: number, radius: number, startAngle: number, endAngle: number) => {
+  const start = polarToCartesian(x, y, radius, endAngle);
+  const end = polarToCartesian(x, y, radius, startAngle);
+
+  const largeArcFlag = endAngle - startAngle <= 180 ? "0" : "1";
+
+  const d = [
+    "M", start.x, start.y, 
+    "A", radius, radius, 0, largeArcFlag, 0, end.x, end.y
+  ].join(" ");
+
+  return d;
+};
+
+export const describeDonutSector = (x: number, y: number, innerRadius: number, outerRadius: number, startAngle: number, endAngle: number) => {
+  // If full circle
+  if (endAngle - startAngle >= 359.9) {
+      return [
+        "M", x, y - outerRadius,
+        "A", outerRadius, outerRadius, 0, 1, 1, x, y + outerRadius,
+        "A", outerRadius, outerRadius, 0, 1, 1, x, y - outerRadius,
+        "M", x, y - innerRadius,
+        "A", innerRadius, innerRadius, 0, 1, 0, x, y + innerRadius,
+        "A", innerRadius, innerRadius, 0, 1, 0, x, y - innerRadius,
+        "Z"
+      ].join(" ");
+  }
+
+  const startOuter = polarToCartesian(x, y, outerRadius, endAngle);
+  const endOuter = polarToCartesian(x, y, outerRadius, startAngle);
+  const startInner = polarToCartesian(x, y, innerRadius, endAngle);
+  const endInner = polarToCartesian(x, y, innerRadius, startAngle);
+
+  const largeArcFlag = endAngle - startAngle <= 180 ? "0" : "1";
+
+  const d = [
+    "M", startOuter.x, startOuter.y,
+    "A", outerRadius, outerRadius, 0, largeArcFlag, 0, endOuter.x, endOuter.y,
+    "L", endInner.x, endInner.y,
+    "A", innerRadius, innerRadius, 0, largeArcFlag, 1, startInner.x, startInner.y,
+    "Z"
+  ].join(" ");
+
+  return d;
+};
+
+export const dateToAngle = (date: Date, year: number) => {
+  const start = startOfYear(new Date(year, 0, 1));
+  const end = endOfYear(new Date(year, 0, 1));
+  const totalMs = differenceInMilliseconds(end, start);
+  const elapsedMs = differenceInMilliseconds(date, start);
+  
+  // 360 degrees
+  return (elapsedMs / totalMs) * 360;
 };
