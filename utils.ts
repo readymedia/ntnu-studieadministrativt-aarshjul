@@ -8,7 +8,7 @@ import {
   differenceInMilliseconds,
   endOfYear,
   addMonths, 
-  addWeeks,
+  addWeeks, 
   differenceInDays
 } from 'date-fns';
 import nb from 'date-fns/locale/nb';
