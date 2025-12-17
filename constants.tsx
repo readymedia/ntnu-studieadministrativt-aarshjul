@@ -62,3 +62,14 @@ export const ROLES: UserRole[] = [
 ];
 
 export const CAMPUSES: Campus[] = ['Trondheim', 'Gjøvik', 'Ålesund', 'Hele NTNU'];
+
+export const AVAILABLE_ICONS = [
+  'Calendar', 
+  'BookOpen', 
+  'GraduationCap', 
+  'Globe', 
+  'FileText', 
+  'AlertCircle', 
+  'Clock', 
+  'Award'
+];

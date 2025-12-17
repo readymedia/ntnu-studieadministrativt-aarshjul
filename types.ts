@@ -34,6 +34,7 @@ export interface CalendarEvent {
   links?: { title: string; url: string }[];
   isRecurring: boolean;
   updatedBy?: string;
+  icon?: string; // New field for icon name
 }
 
 export interface FilterState {

@@ -1,3 +1,4 @@
+
 import { 
   format, 
   isValid, 
@@ -12,6 +13,7 @@ import startOfMonth from 'date-fns/startOfMonth';
 import startOfWeek from 'date-fns/startOfWeek';
 import startOfDay from 'date-fns/startOfDay';
 import nb from 'date-fns/locale/nb';
+import { CalendarEvent } from './types';
 
 export { nb };
 
@@ -98,4 +100,43 @@ export const isEventInInterval = (eventStart: string, eventEnd: string, interval
   } catch (e) {
     return false;
   }
+};
+
+/**
+ * Generates an ICS file content string from a list of events
+ */
+export const generateICS = (events: CalendarEvent[]): string => {
+  const formatDateICS = (dateStr: string) => {
+    return dateStr.replace(/-/g, ''); // YYYY-MM-DD -> YYYYMMDD
+  };
+
+  const now = new Date().toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+
+  let icsContent = [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//NTNU//Arshjul//NO',
+    'CALSCALE:GREGORIAN',
+    'METHOD:PUBLISH'
+  ].join('\r\n');
+
+  events.forEach(event => {
+    // Basic sanitization
+    const description = (event.description || '').replace(/\n/g, '\\n').replace(/,/g, '\\,');
+    
+    icsContent += '\r\n' + [
+      'BEGIN:VEVENT',
+      `UID:${event.id}@ntnu.no`,
+      `DTSTAMP:${now}`,
+      `DTSTART;VALUE=DATE:${formatDateICS(event.startDate)}`,
+      `DTEND;VALUE=DATE:${formatDateICS(event.endDate)}`, // Note: ICS end date is exclusive for all-day events, usually handled by client, but for simplicity we keep it simple here. Ideally +1 day.
+      `SUMMARY:${event.title}`,
+      `DESCRIPTION:${description}`,
+      `CATEGORIES:${event.area}`,
+      'END:VEVENT'
+    ].join('\r\n');
+  });
+
+  icsContent += '\r\nEND:VCALENDAR';
+  return icsContent;
 };

@@ -2,12 +2,13 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { CalendarEvent, FilterState, AcademicArea, UserRole, Campus } from './types';
 import { INITIAL_EVENTS } from './initialData';
+import { generateICS } from './utils';
 import Sidebar from './components/Sidebar';
 import AgendaView from './components/AgendaView';
 import CalendarView from './components/CalendarView';
 import AdminView from './components/AdminView';
 import EventModal from './components/EventModal';
-import { Search, Calendar as CalendarIcon, List, Plus, Bell, Lock, LogOut } from 'lucide-react';
+import { Search, Calendar as CalendarIcon, List, Plus, Bell, Lock, LogOut, Download, Sun, Moon, Menu } from 'lucide-react';
 
 /**
  * ARCHITECTURAL GUIDELINE:
@@ -41,6 +42,25 @@ const App: React.FC = () => {
   
   // Auth state
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+
+  // Mobile sidebar state
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+
+  // Theme state
+  const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
+    return localStorage.getItem('ntnu_theme') === 'dark';
+  });
+
+  // Theme effect
+  useEffect(() => {
+    if (isDarkMode) {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('ntnu_theme', 'dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('ntnu_theme', 'light');
+    }
+  }, [isDarkMode]);
 
   // Persistence side-effect
   useEffect(() => {
@@ -101,6 +121,14 @@ const App: React.FC = () => {
     }
   };
 
+  const handleBulkImport = (newEvents: CalendarEvent[]) => {
+    if (confirm(`Dette vil overskrive eksisterende data med ${newEvents.length} elementer. Er du sikker?`)) {
+      setEvents(newEvents);
+      alert('Data ble importert.');
+      setIsEditing(false);
+    }
+  };
+
   const handleEditRequest = (event: CalendarEvent) => {
     setSelectedEvent(null);
     setEditTarget(event);
@@ -122,66 +150,62 @@ const App: React.FC = () => {
     setEditTarget(null);
   };
 
+  const handleDownloadICS = () => {
+    const icsContent = generateICS(filteredEvents);
+    const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', 'ntnu_arshjul_eksport.ics');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
-    <div className="min-h-screen flex flex-col md:flex-row bg-[#f8fafc]">
+    <div className="min-h-screen flex flex-col md:flex-row bg-[#f8fafc] dark:bg-slate-950 transition-colors duration-200">
       {/* Navigation / Sidebar - Shared filters across all views */}
-      <Sidebar filters={filters} setFilters={setFilters} />
+      <Sidebar 
+        filters={filters} 
+        setFilters={setFilters} 
+        isOpen={isMobileSidebarOpen}
+        onClose={() => setIsMobileSidebarOpen(false)}
+      />
 
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
-        <header className="bg-white border-b border-gray-200 p-6 sticky top-0 z-30 shadow-sm">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div>
-              <h1 className="text-2xl font-black text-[#00509e] flex items-center gap-2 tracking-tight">
-                NTNU Årshjul
-              </h1>
-              <p className="text-xs text-gray-500 font-bold uppercase tracking-widest mt-1">Studieadministrativ oversikt</p>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-3">
-              <div className="relative group">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#00509e] transition-colors" size={18} />
-                <input
-                  type="text"
-                  placeholder="Søk (tittel, fakultet...)"
-                  className="pl-10 pr-4 py-2 bg-gray-100 border-none rounded-full text-sm focus:ring-2 focus:ring-[#00509e] transition-all w-full md:w-64 outline-none text-gray-700 placeholder-gray-500"
-                  value={filters.search}
-                  onChange={e => setFilters(prev => ({ ...prev, search: e.target.value }))}
-                />
+        <header className="bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-800 p-4 md:p-6 sticky top-0 z-30 shadow-sm transition-colors duration-200">
+          <div className="flex flex-col gap-4">
+            
+            {/* Top Row: Title and Mobile Toggle */}
+            <div className="flex items-center justify-between">
+               <div className="flex items-center gap-3">
+                <button 
+                  onClick={() => setIsMobileSidebarOpen(true)}
+                  className="md:hidden p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-lg"
+                >
+                  <Menu size={24} />
+                </button>
+                <div>
+                  <h1 className="text-xl md:text-2xl font-black text-[#00509e] dark:text-blue-400 flex items-center gap-2 tracking-tight">
+                    NTNU Årshjul
+                  </h1>
+                  <p className="text-[10px] md:text-xs text-gray-500 dark:text-gray-400 font-bold uppercase tracking-widest hidden sm:block mt-1">Studieadministrativ oversikt</p>
+                </div>
               </div>
 
-              <div className="flex bg-gray-100 p-1 rounded-full border border-gray-200">
-                <button 
-                  onClick={() => setViewMode('Agenda')}
-                  className={`p-2 rounded-full transition-all flex items-center gap-2 px-4 ${viewMode === 'Agenda' ? 'bg-white shadow text-[#00509e] font-bold' : 'text-gray-600 hover:text-gray-800'}`}
+              {/* Action Buttons (Right side) */}
+              <div className="flex items-center gap-2">
+                 <button 
+                  onClick={() => setIsDarkMode(!isDarkMode)}
+                  className="p-2 text-gray-500 dark:text-gray-400 hover:text-[#00509e] dark:hover:text-blue-400 transition-colors rounded-full hover:bg-gray-100 dark:hover:bg-slate-800"
+                  title={isDarkMode ? "Bytt til lyst modus" : "Bytt til mørkt modus"}
                 >
-                  <List size={18} />
-                  <span className="text-xs">Agenda</span>
+                  {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
                 </button>
-                <button 
-                  onClick={() => setViewMode('Calendar')}
-                  className={`p-2 rounded-full transition-all flex items-center gap-2 px-4 ${viewMode === 'Calendar' ? 'bg-white shadow text-[#00509e] font-bold' : 'text-gray-600 hover:text-gray-800'}`}
-                >
-                  <CalendarIcon size={18} />
-                  <span className="text-xs">Kalender</span>
-                </button>
-              </div>
-
-              <div className="h-8 w-[1px] bg-gray-200 mx-2 hidden md:block"></div>
-
-              {isAuthenticated ? (
-                <>
-                  <button 
-                    onClick={() => {
-                      setEditTarget(null);
-                      setIsEditing(true);
-                    }}
-                    className="bg-[#00509e] text-white p-2 rounded-full hover:opacity-90 transition-opacity flex items-center gap-2 px-4 shadow-sm"
-                  >
-                    <Plus size={20} />
-                    <span className="text-xs font-bold uppercase tracking-wider">Legg til</span>
-                  </button>
+                
+                {isAuthenticated ? (
                   <button 
                     onClick={handleLogout}
                     className="p-2 text-gray-500 hover:text-red-600 transition-colors"
@@ -189,33 +213,86 @@ const App: React.FC = () => {
                   >
                     <LogOut size={20} />
                   </button>
-                </>
-              ) : (
+                ) : (
+                  <button 
+                    onClick={handleLogin}
+                    className="text-gray-500 hover:text-[#00509e] dark:hover:text-blue-400 p-2 rounded-full transition-colors flex items-center gap-2"
+                  >
+                    <Lock size={18} />
+                    <span className="text-xs font-bold uppercase hidden md:inline">Logg inn</span>
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Second Row: Search and View Toggles */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+              <div className="relative group w-full md:w-auto">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#00509e] dark:group-focus-within:text-blue-400 transition-colors" size={18} />
+                <input
+                  type="text"
+                  placeholder="Søk (tittel, fakultet...)"
+                  className="pl-10 pr-4 py-2 bg-gray-100 dark:bg-slate-800 dark:text-white border-none rounded-full text-sm focus:ring-2 focus:ring-[#00509e] dark:focus:ring-blue-500 transition-all w-full md:w-64 outline-none text-gray-700 placeholder-gray-500"
+                  value={filters.search}
+                  onChange={e => setFilters(prev => ({ ...prev, search: e.target.value }))}
+                />
+              </div>
+
+              <div className="flex items-center gap-2 overflow-x-auto pb-1 md:pb-0 scrollbar-hide">
+                <div className="flex bg-gray-100 dark:bg-slate-800 p-1 rounded-full border border-gray-200 dark:border-slate-700 flex-shrink-0">
+                  <button 
+                    onClick={() => setViewMode('Agenda')}
+                    className={`p-2 rounded-full transition-all flex items-center gap-2 px-4 ${viewMode === 'Agenda' ? 'bg-white dark:bg-slate-700 shadow text-[#00509e] dark:text-blue-300 font-bold' : 'text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200'}`}
+                  >
+                    <List size={18} />
+                    <span className="text-xs">Agenda</span>
+                  </button>
+                  <button 
+                    onClick={() => setViewMode('Calendar')}
+                    className={`p-2 rounded-full transition-all flex items-center gap-2 px-4 ${viewMode === 'Calendar' ? 'bg-white dark:bg-slate-700 shadow text-[#00509e] dark:text-blue-300 font-bold' : 'text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200'}`}
+                  >
+                    <CalendarIcon size={18} />
+                    <span className="text-xs">Kalender</span>
+                  </button>
+                </div>
+
+                <div className="h-8 w-[1px] bg-gray-200 dark:bg-slate-700 mx-2 hidden md:block"></div>
+                
                 <button 
-                  onClick={handleLogin}
-                  className="text-gray-500 hover:text-[#00509e] p-2 rounded-full transition-colors flex items-center gap-2"
+                  onClick={handleDownloadICS}
+                  className="p-2 text-gray-500 dark:text-gray-400 hover:text-[#00509e] dark:hover:text-blue-400 transition-colors flex-shrink-0"
+                  title="Last ned filtrert utvalg som .ics"
                 >
-                  <Lock size={18} />
-                  <span className="text-xs font-bold uppercase hidden md:inline">Logg inn</span>
+                  <Download size={20} />
                 </button>
-              )}
-              
-              <button className="p-2 text-gray-500 hover:text-[#00509e] transition-colors relative">
-                <Bell size={20} />
-                <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-              </button>
+
+                {isAuthenticated && (
+                  <button 
+                    onClick={() => {
+                      setEditTarget(null);
+                      setIsEditing(true);
+                    }}
+                    className="bg-[#00509e] text-white p-2 rounded-full hover:opacity-90 transition-opacity flex items-center gap-2 px-4 shadow-sm flex-shrink-0"
+                  >
+                    <Plus size={20} />
+                    <span className="text-xs font-bold uppercase tracking-wider hidden sm:inline">Legg til</span>
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </header>
 
         {/* Dynamic View Section - Always consumes from the Central Filtered State */}
-        <div className="flex-1 overflow-y-auto p-6">
+        <div className="flex-1 overflow-y-auto p-4 md:p-6">
           <div className="max-w-6xl mx-auto">
             {isEditing && isAuthenticated ? (
               <AdminView 
                 onSave={handleSaveEvent} 
                 onDelete={handleDeleteEvent}
+                onBulkImport={handleBulkImport}
                 editingEvent={editTarget}
+                allEvents={events} // Pass all events for export
                 onClose={() => {
                   setIsEditing(false);
                   setEditTarget(null);
