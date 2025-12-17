@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { CalendarEvent, AcademicArea, UserRole, Campus, EventType } from '../types';
 import { BRANCHING_DATA, AREAS, ROLES, CAMPUSES, AVAILABLE_ICONS } from '../constants';
-import { Save, Trash2, X, PlusCircle, Link as LinkIcon, Plus, Check, Calendar, BookOpen, GraduationCap, Globe, FileText, AlertCircle, Clock, Award, Upload, Download, Database } from 'lucide-react';
+import { Save, Trash2, X, PlusCircle, Link as LinkIcon, Plus, Check, Calendar, BookOpen, GraduationCap, Globe, FileText, AlertCircle, Clock, Award, Upload, Download, Database, Image as ImageIcon, Server, RefreshCw, Power } from 'lucide-react';
 
 interface AdminViewProps {
   onSave: (event: CalendarEvent) => void;
@@ -21,9 +21,16 @@ const IconDisplay = ({ name, size = 20, className = "" }: { name: string, size?:
 };
 
 const AdminView: React.FC<AdminViewProps> = ({ onSave, onDelete, onBulkImport, editingEvent, allEvents, onClose }) => {
-  const [activeTab, setActiveTab] = useState<'edit' | 'tools'>('edit');
+  const [activeTab, setActiveTab] = useState<'edit' | 'tools' | 'integrations'>('edit');
   const [importJson, setImportJson] = useState('');
   
+  // Mock state for integrations
+  const [syncStatus, setSyncStatus] = useState<Record<string, 'idle' | 'syncing' | 'connected' | 'error'>>({
+    'fs': 'idle',
+    'epn': 'idle',
+    'tp': 'idle'
+  });
+
   const [formData, setFormData] = useState<Partial<CalendarEvent>>({
     title: '',
     description: '',
@@ -34,6 +41,7 @@ const AdminView: React.FC<AdminViewProps> = ({ onSave, onDelete, onBulkImport, e
     campus: [],
     roles: [],
     links: [],
+    imageUrl: '',
     isRecurring: false,
     icon: 'Calendar',
     ...editingEvent
@@ -134,6 +142,15 @@ const AdminView: React.FC<AdminViewProps> = ({ onSave, onDelete, onBulkImport, e
     }
   };
 
+  // Mock function to simulate API sync
+  const handleSimulateSync = (system: string) => {
+    setSyncStatus(prev => ({ ...prev, [system]: 'syncing' }));
+    setTimeout(() => {
+      setSyncStatus(prev => ({ ...prev, [system]: 'connected' }));
+      alert(`Vellykket simulert synkronisering mot ${system.toUpperCase()}. Ingen data ble endret.`);
+    }, 2000);
+  };
+
   return (
     <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-gray-200 dark:border-slate-800 overflow-hidden max-w-4xl mx-auto my-8 flex flex-col max-h-[90vh]">
       <div className="bg-[#00509e] dark:bg-slate-950 text-white p-6 flex justify-between items-center flex-shrink-0">
@@ -159,7 +176,14 @@ const AdminView: React.FC<AdminViewProps> = ({ onSave, onDelete, onBulkImport, e
           className={`flex-1 py-3 font-bold text-sm flex items-center justify-center gap-2 transition-colors ${activeTab === 'tools' ? 'bg-white dark:bg-slate-900 text-[#00509e] dark:text-blue-400 border-b-2 border-[#00509e] dark:border-blue-400' : 'text-gray-500 hover:text-gray-800 dark:hover:text-gray-200'}`}
         >
           <Database size={16} />
-          Dataverktøy (Import/Eksport)
+          Dataverktøy
+        </button>
+        <button 
+          onClick={() => setActiveTab('integrations')}
+          className={`flex-1 py-3 font-bold text-sm flex items-center justify-center gap-2 transition-colors ${activeTab === 'integrations' ? 'bg-white dark:bg-slate-900 text-[#00509e] dark:text-blue-400 border-b-2 border-[#00509e] dark:border-blue-400' : 'text-gray-500 hover:text-gray-800 dark:hover:text-gray-200'}`}
+        >
+          <Server size={16} />
+          Integrasjoner
         </button>
       </div>
 
@@ -308,6 +332,20 @@ const AdminView: React.FC<AdminViewProps> = ({ onSave, onDelete, onBulkImport, e
                 <LinkIcon size={16} />
                 Ressurser og lenker
               </label>
+
+              {/* Image URL Input */}
+              <div className="flex flex-col gap-2 mb-4">
+                <div className="flex items-center gap-2 text-xs font-medium text-gray-500 dark:text-gray-400">
+                  <ImageIcon size={14} />
+                  <span>Bilde (URL)</span>
+                </div>
+                <input
+                  className="w-full p-3 border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 dark:text-white rounded-lg text-sm focus:ring-2 focus:ring-[#00509e] dark:focus:ring-blue-500 outline-none"
+                  placeholder="https://eksempel.no/bilde.jpg"
+                  value={formData.imageUrl || ''}
+                  onChange={e => setFormData(prev => ({ ...prev, imageUrl: e.target.value }))}
+                />
+              </div>
               
               <div className="flex flex-col md:flex-row gap-3">
                 <input
@@ -446,7 +484,7 @@ const AdminView: React.FC<AdminViewProps> = ({ onSave, onDelete, onBulkImport, e
               </div>
             </div>
           </form>
-        ) : (
+        ) : activeTab === 'tools' ? (
           <div className="space-y-8 animate-in fade-in duration-300">
             <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-6">
               <h3 className="text-lg font-bold text-[#00509e] dark:text-blue-400 mb-2 flex items-center gap-2">
@@ -502,6 +540,104 @@ const AdminView: React.FC<AdminViewProps> = ({ onSave, onDelete, onBulkImport, e
                   Lukk
                 </button>
               </div>
+          </div>
+        ) : (
+          /* INTEGRATIONS TAB (MOCKUP) */
+          <div className="space-y-8 animate-in fade-in duration-300">
+            <div className="bg-indigo-50 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900 rounded-xl p-6">
+              <div className="flex items-start gap-4">
+                <div className="bg-indigo-100 dark:bg-indigo-900/50 p-3 rounded-xl text-indigo-600 dark:text-indigo-400">
+                  <Server size={32} />
+                </div>
+                <div>
+                   <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">Eksterne Systemer</h3>
+                   <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 max-w-xl">
+                     Koble årshjulet mot NTNUs studieadministrative systemer for automatisk oppdatering av frister og datoer.
+                     <br/><em className="text-xs opacity-70">(Dette er et demonstrasjonsgrensesnitt. Ingen virkelige data overføres enda.)</em>
+                   </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid gap-4">
+              {/* FS Card */}
+              <div className="border border-gray-200 dark:border-slate-700 rounded-xl p-4 flex items-center justify-between bg-white dark:bg-slate-800 shadow-sm">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-gray-100 dark:bg-slate-700 rounded-lg flex items-center justify-center font-black text-gray-500 dark:text-gray-400">FS</div>
+                  <div>
+                    <h4 className="font-bold text-gray-900 dark:text-white">Felles Studentsystem (FS)</h4>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Henter eksamensdatoer og frister for opptak.</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  {syncStatus.fs === 'connected' ? (
+                     <span className="text-xs font-bold text-green-600 bg-green-50 dark:bg-green-900/20 px-2 py-1 rounded flex items-center gap-1">
+                       <Check size={12} /> Tilkoblet
+                     </span>
+                  ) : (
+                     <span className="text-xs font-bold text-gray-500 bg-gray-100 dark:bg-slate-700 px-2 py-1 rounded">Ikke tilkoblet</span>
+                  )}
+                  
+                  <button 
+                    onClick={() => handleSimulateSync('fs')}
+                    disabled={syncStatus.fs === 'syncing'}
+                    className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${
+                      syncStatus.fs === 'connected' 
+                      ? 'bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300' 
+                      : 'bg-indigo-600 text-white hover:bg-indigo-700'
+                    }`}
+                  >
+                    {syncStatus.fs === 'syncing' ? <RefreshCw size={16} className="animate-spin" /> : <Power size={16} />}
+                    {syncStatus.fs === 'connected' ? 'Synkroniser' : 'Koble til'}
+                  </button>
+                </div>
+              </div>
+
+              {/* EpN Card */}
+              <div className="border border-gray-200 dark:border-slate-700 rounded-xl p-4 flex items-center justify-between bg-white dark:bg-slate-800 shadow-sm">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-gray-100 dark:bg-slate-700 rounded-lg flex items-center justify-center font-black text-gray-500 dark:text-gray-400">EpN</div>
+                  <div>
+                    <h4 className="font-bold text-gray-900 dark:text-white">Emneplanlegging på Nett</h4>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Henter frister for emne- og programrevisjon.</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                   <button 
+                    onClick={() => handleSimulateSync('epn')}
+                    disabled={syncStatus.epn === 'syncing'}
+                    className="px-4 py-2 rounded-lg text-sm font-bold bg-indigo-600 text-white hover:bg-indigo-700 transition-all flex items-center gap-2"
+                  >
+                    {syncStatus.epn === 'syncing' ? <RefreshCw size={16} className="animate-spin" /> : <Power size={16} />}
+                    Koble til
+                  </button>
+                </div>
+              </div>
+
+              {/* TP Card */}
+              <div className="border border-gray-200 dark:border-slate-700 rounded-xl p-4 flex items-center justify-between bg-white dark:bg-slate-800 shadow-sm opacity-60">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-gray-100 dark:bg-slate-700 rounded-lg flex items-center justify-center font-black text-gray-500 dark:text-gray-400">TP</div>
+                  <div>
+                    <h4 className="font-bold text-gray-900 dark:text-white">Timeplan (TP)</h4>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">API ikke tilgjengelig enda.</p>
+                  </div>
+                </div>
+                <div>
+                   <span className="text-xs font-bold text-gray-400 border border-gray-200 dark:border-slate-700 px-2 py-1 rounded">Kommer snart</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-4 border-t border-gray-100 dark:border-slate-800">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="px-6 py-3 bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-gray-300 rounded-lg font-bold hover:bg-gray-200 dark:hover:bg-slate-700 transition-colors"
+                >
+                  Lukk
+                </button>
+            </div>
           </div>
         )}
       </div>

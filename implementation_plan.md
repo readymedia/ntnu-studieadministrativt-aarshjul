@@ -41,6 +41,11 @@ Denne planen deler opp gjenstående arbeid i logiske faser.
 
 ---
 
-## Fase 7: Datahåndtering & Tilpasning (Påbegynt)
+## Fase 7: Datahåndtering & Tilpasning (Fullført)
 - [x] **7.1 Bulk Import/Eksport:** Legge til verktøy i Admin for å hente ut og laste inn data (JSON).
-- [ ] **7.2 Bilde-støtte:** Utvide datamodell og UI for å vise bilder (URL) i EventModal.
+- [x] **7.2 Bilde-støtte:** Utvide datamodell og UI for å vise bilder (URL) i EventModal.
+
+---
+
+## Fase 8: Integrasjons-forberedelser (Påbegynt)
+- [x] **8.1 Integrasjons-UI:** Legge til menyvalg og "dummy"-grensesnitt for FS, EpN og TP i Admin-panelet for å visualisere fremtidige koblinger.

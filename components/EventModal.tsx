@@ -64,6 +64,19 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose, onEdit, isAuthe
         </div>
 
         <div className="p-8 space-y-8 overflow-y-auto">
+          {event.imageUrl && (
+            <div className="w-full rounded-xl overflow-hidden border border-gray-100 dark:border-slate-800 shadow-sm">
+              <img 
+                src={event.imageUrl} 
+                alt={event.title} 
+                className="w-full h-48 md:h-64 object-cover"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).style.display = 'none';
+                }}
+              />
+            </div>
+          )}
+
           <section className="space-y-3">
             <div className="flex items-center gap-2 text-[#00509e] dark:text-blue-400 font-bold uppercase text-xs tracking-widest">
               <Info size={14} />
