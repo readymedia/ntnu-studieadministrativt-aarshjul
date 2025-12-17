@@ -1,0 +1,5 @@
+{
+  "name": "NTNU Studieadministrativt Årshjul",
+  "description": "En dynamisk oversikt over studieadministrative frister, hendelser og perioder for NTNU, med filtrering på rolle, område og campus.",
+  "requestFramePermissions": []
+}
